@@ -93,7 +93,7 @@ impl ServiceProtocol for PHandle {
             context.session.id,
             context.proto_id,
             data.len(),
-            str::from_utf8(data.as_ref()).unwrap()
+            data
         );
         self.tx
             .send((context.session.id.value(), data.as_ref().to_vec()))
