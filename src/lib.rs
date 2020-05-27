@@ -197,10 +197,7 @@ impl P2P {
 
         let service_control = service.control().clone();
 
-        thread::spawn(move || {
-            tokio::run(service.for_each(|_| Ok(())));
-            println!("p2p service thread exit!");
-        });
+        thread::spawn(move || tokio::run(service.for_each(|_| Ok(()))));
 
         // start a thread to loop trying to connect
         let control = service_control.clone();
@@ -208,33 +205,21 @@ impl P2P {
         thread::spawn(move || {
             let listen_addr = socketaddr_to_multiaddr(listen_addr);
             let _ = control.listen(listen_addr);
-            let mut exit_flag = false;
 
             loop {
                 for addr in peer_addrs.clone() {
                     if !peers_manager_clone.check_addr_exists(&addr) {
-                        let ret = control.dial(socketaddr_to_multiaddr(addr), DialProtocol::All);
-                        if ret.is_err() {
-                            exit_flag = true;
-                        }
+                        let _ = control.dial(socketaddr_to_multiaddr(addr), DialProtocol::All);
                     }
-                }
-                if exit_flag {
-                    break;
                 }
                 thread::sleep(Duration::from_secs(15));
             }
-            println!("loop dial thread exit!");
         });
 
         P2P {
             peers_manager,
             service_control,
         }
-    }
-
-    pub fn drop(self) {
-        let _ = self.service_control.close();
     }
 
     pub fn send_message(&self, session_id: usize, message: &[u8]) {
@@ -251,39 +236,5 @@ impl P2P {
         self.service_control
             .filter_broadcast(TargetSession::All, PROTOCOL_ID, bytes::Bytes::from(message))
             .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::channel::unbounded;
-    use super::P2P;
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-    use std::path::Path;
-    use std::thread;
-    use std::time::Duration;
-
-    #[test]
-    fn drop_test() {
-        let path0 = Path::new(".")
-            .join("examples")
-            .join("0_privkey")
-            .to_str()
-            .unwrap()
-            .to_string();
-        let addr_0 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 1337);
-        let addr_1 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 1338);
-        let (tx, _rx) = unbounded();
-        let s = P2P::new(
-            path0,
-            512 * 1024,
-            addr_0.clone(),
-            vec![addr_1.clone()],
-            tx.clone(),
-        );
-        thread::sleep(Duration::new(20, 0));
-        s.drop();
-        println!("after drop");
-        thread::sleep(Duration::new(20, 0));
     }
 }
