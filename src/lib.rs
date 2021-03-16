@@ -48,11 +48,15 @@ impl PeersManager {
     }
 
     fn add_peer(&self, session_id: usize, peer: &SocketAddr) {
-        self.outbound_peers.write().insert(session_id, peer.clone());
+        self.outbound_peers.write().insert(session_id, *peer);
     }
 
     fn remove_peer(&self, session_id: usize) {
         let _ = self.outbound_peers.write().remove_entry(&session_id);
+    }
+
+    fn peer_count(&self) -> u64 {
+        self.outbound_peers.read().len() as u64
     }
 }
 
@@ -245,5 +249,9 @@ impl P2P {
                 bytes::Bytes::copy_from_slice(message),
             )
             .unwrap();
+    }
+
+    pub fn get_peer_count(&self) -> u64 {
+        self.peers_manager.peer_count()
     }
 }
