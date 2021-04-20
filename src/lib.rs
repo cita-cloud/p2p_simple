@@ -155,18 +155,8 @@ impl P2P {
         listen_addr: SocketAddr,
         peer_addrs: Vec<SocketAddr>,
         tx: Sender<(usize, Vec<u8>)>,
+        is_need_secio: bool,
     ) -> P2P {
-        // read and decode private key
-        let file = File::open(private_key).expect("cannot open private_key file");
-        let mut file = BufReader::new(file);
-        let mut private_key_str = String::new();
-        let _ = file.read_line(&mut private_key_str);
-        // skip 0x
-        let private_key_bytes =
-            hex::decode(&private_key_str[2..].trim()).expect("failed to decode private key");
-        let key_pair = SecioKeyPair::secp256k1_raw_key(private_key_bytes)
-            .expect("failed to generate key pair");
-
         // shared peers manager struct
         let peers_manager = PeersManager {
             outbound_peers: Arc::new(RwLock::new(HashMap::new())),
@@ -191,13 +181,33 @@ impl P2P {
             .build();
 
         let peers_manager_clone = peers_manager.clone();
-        let service = ServiceBuilder::default()
-            .insert_protocol(meta)
-            .key_pair(key_pair)
-            .forever(true)
-            .build(SHandle {
-                peers_manager: peers_manager_clone,
-            });
+
+        let service = if is_need_secio {
+            // read and decode private key
+            let file = File::open(private_key).expect("cannot open private_key file");
+            let mut file = BufReader::new(file);
+            let mut private_key_str = String::new();
+            let _ = file.read_line(&mut private_key_str);
+            // skip 0x
+            let private_key_bytes =
+                hex::decode(&private_key_str[2..].trim()).expect("failed to decode private key");
+            let key_pair = SecioKeyPair::secp256k1_raw_key(private_key_bytes)
+                .expect("failed to generate key pair");
+            ServiceBuilder::default()
+                .insert_protocol(meta)
+                .key_pair(key_pair)
+                .forever(true)
+                .build(SHandle {
+                    peers_manager: peers_manager_clone,
+                })
+        } else {
+            ServiceBuilder::default()
+                .insert_protocol(meta)
+                .forever(true)
+                .build(SHandle {
+                    peers_manager: peers_manager_clone,
+                })
+        };
 
         let service_control = service.control().clone();
 

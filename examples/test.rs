@@ -4,12 +4,13 @@ use p2p_simple::{channel, P2P};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::Path;
 use std::str;
+use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 
 // run example:
-// RUST_LOG=info cargo run --example test 0
-// RUST_LOG=info cargo run --example test 1
+// RUST_LOG=info cargo run --example test true 0
+// RUST_LOG=info cargo run --example test true 1
 fn main() {
     env_logger::init();
 
@@ -27,10 +28,20 @@ fn main() {
         .to_string();
     let addr_0 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 1337);
     let addr_1 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 1338);
-    if std::env::args().nth(1) == Some("0".to_string()) {
+
+    let arg0 = std::env::args().nth(1).unwrap();
+    let is_need_secio = FromStr::from_str(&arg0).unwrap();
+    if std::env::args().nth(2) == Some("0".to_string()) {
         info!("Starting node 0 ......");
         let (tx, rx) = unbounded();
-        let s = P2P::new(path0, 512 * 1024, addr_0.clone(), vec![addr_1.clone()], tx);
+        let s = P2P::new(
+            path0,
+            512 * 1024,
+            addr_0.clone(),
+            vec![addr_1.clone()],
+            tx,
+            is_need_secio,
+        );
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(10));
             info!("node 0 broadcast message");
@@ -50,7 +61,14 @@ fn main() {
     } else {
         info!("Starting node 1 ......");
         let (tx, rx) = unbounded();
-        let s = P2P::new(path1, 512 * 1024, addr_1.clone(), vec![addr_0.clone()], tx);
+        let s = P2P::new(
+            path1,
+            512 * 1024,
+            addr_1.clone(),
+            vec![addr_0.clone()],
+            tx,
+            is_need_secio,
+        );
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(10));
             info!("node 1 broadcast message");
