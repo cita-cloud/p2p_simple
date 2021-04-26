@@ -226,8 +226,11 @@ impl P2P {
                 loop {
                     for addr in peer_addrs.clone() {
                         if !peers_manager_clone.check_addr_exists(&addr) {
-                            let _ =
-                                control.dial(socketaddr_to_multiaddr(addr), TargetProtocol::All);
+                            let _ = control.dial(
+                                socketaddr_to_multiaddr(addr),
+                                TargetProtocol::All,
+                                None,
+                            );
                         }
                     }
                     interval.tick().await;
