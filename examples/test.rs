@@ -9,8 +9,15 @@ use std::thread;
 use std::time::Duration;
 
 // run example:
+// RUST_LOG=info cargo run --example test false 0
+// RUST_LOG=info cargo run --example test false 1
+
 // RUST_LOG=info cargo run --example test true 0
 // RUST_LOG=info cargo run --example test true 1
+// mkfifo /tmp/fifo0
+// mkfifo /tmp/fifo0
+// bsd-nc -vlk 8338 0</tmp/fifo1 | bsd-nc localhost 1337 1>/tmp/fifo1
+// bsd-nc -vlk 8337 0</tmp/fifo0 | bsd-nc localhost 1338 1>/tmp/fifo0
 fn main() {
     env_logger::init();
 
@@ -30,7 +37,17 @@ fn main() {
     let addr_1 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 1338);
 
     let arg0 = std::env::args().nth(1).unwrap();
-    let is_need_secio = FromStr::from_str(&arg0).unwrap();
+    let is_need_proxy = FromStr::from_str(&arg0).unwrap();
+
+    let target_0;
+    let target_1;
+    if is_need_proxy {
+        target_0 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8337);
+        target_1 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8338);
+    } else {
+        target_0 = addr_1;
+        target_1 = addr_0;
+    }
     if std::env::args().nth(2) == Some("0".to_string()) {
         info!("Starting node 0 ......");
         let (tx, rx) = unbounded();
@@ -38,9 +55,9 @@ fn main() {
             path0,
             512 * 1024,
             addr_0.clone(),
-            vec![addr_1.clone()],
+            vec![target_0.clone()],
             tx,
-            is_need_secio,
+            true,
         );
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(10));
@@ -65,9 +82,9 @@ fn main() {
             path1,
             512 * 1024,
             addr_1.clone(),
-            vec![addr_0.clone()],
+            vec![target_1.clone()],
             tx,
-            is_need_secio,
+            true,
         );
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(10));
