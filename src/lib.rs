@@ -217,7 +217,7 @@ impl P2P {
         // Start a dedicated thread for the tokio runtime.
         // Do not use `tokio::spawn` directly, which requires the user to run it in a tokio runtime.
         std::thread::spawn(move || {
-            let mut rt = tokio::runtime::Runtime::new().unwrap();
+            let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async move {
                 tokio::spawn(service.for_each(|_| future::ready(())));
                 let listen_addr = socketaddr_to_multiaddr(listen_addr);
