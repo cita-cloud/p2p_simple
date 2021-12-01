@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tentacle = { git = "https://github.com/nervosnetwork/tentacle", version = "0.4.0-alpha.1" }
+tentacle = { git = "https://github.com/nervosnetwork/tentacle", branch = "0.4.0-alpha" }
 tokio = { version = "1.0", features = ["sync"] }
 tokio-util = { version = "0.6.0", features = ["codec"] }
 futures = { version = "0.3.0" }
